@@ -337,20 +337,31 @@ def get_header():
         <nav>
             <a href="/">TRANG CHỦ</a>
             
-            <span class="custom-dropdown" style="display: inline-block; position: relative;">
-                <a href="#" class="dropdown-toggle text-light text-decoration-none px-2" id="napTienDropdown" data-bs-toggle="dropdown" aria-expanded="false">NẠP TIỀN</a>
-                <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="napTienDropdown" style="position: absolute; background: #1a1d20; border: 1px solid #2c3034; padding: 5px 0;">
-                    <li><a class="dropdown-item" href="/profile/recharge" style="color: #fff; padding: 8px 15px; display: block; text-decoration: none;">💳 Nạp thẻ cào</a></li>
-                    <li><hr class="dropdown-divider" style="border-color: #444; margin: 5px 0;"></li>
-                    <li><a class="dropdown-item" href="/profile/recharge-atm" style="color: #fff; padding: 8px 15px; display: block; text-decoration: none;">🏦 Bank</a></li>
-                </ul>
-            </span>
+            <div class="user-dropdown" id="napTienDropdownMenu" onclick="toggleNapMenu(event)" style="display: inline-block;">
+                <a href="#" class="dropdown-toggle" style="color: #9ca3af; text-decoration: none; margin: 0 15px; font-weight: 500;">NẠP TIỀN ▼</a>
+                <div class="dropdown-menu" style="width: 220px; left: 10px; top: calc(100% + 5px);">
+                    <a href="/profile/recharge" class="menu-item" style="padding: 8px 0;"><span class="arrow">❯</span> 💳 Nạp thẻ cào</a>
+                    <a href="/profile/recharge-atm" class="menu-item" style="padding: 8px 0;"><span class="arrow">❯</span> 🏦 Chuyển khoản Bank</a>
+                </div>
+            </div>
 
             {'<a href="/admin" style="color:#f59e0b; font-weight:bold;">👑 TRANG QUẢN LÝ (ADMIN)</a>' if current_user == "Kuchrich" else ""}
-            <a href="{FACEBOOK_URL}" target="_blank">FANPAGE </a>
+            <a href="{FACEBOOK_URL}" target="_blank">FANPAGE</a>
         </nav>
         <div class="auth-btns">{auth_html}</div>
     </header>
+    
+    <script>
+        function toggleNapMenu(event) {
+            event.stopPropagation();
+            var dropdown = document.getElementById("napTienDropdownMenu");
+            dropdown.classList.toggle("active");
+        }
+        document.addEventListener("click", function() {
+            var napDropdown = document.getElementById("napTienDropdownMenu");
+            if (napDropdown) napDropdown.classList.remove("active");
+        });
+    </script>
     '''
 
 def get_profile_layout(active_tab, main_content_html):
@@ -900,6 +911,37 @@ def api_admin_process_order():
 @app.route('/google0bfa23e64126a0fb.html')
 def google_verify():
     return "google-site-verification: google0bfa23e64126a0fb.html"
+
+@app.route("/profile/recharge")
+def profile_recharge():
+    current_user = session.get("user")
+    if not current_user: return redirect(url_for("login"))
+    html = f"""
+    <div class="profile-page-title">Nạp thẻ cào tự động</div>
+    <div class="profile-page-sub">Hệ thống nạp thẻ cào chiết khấu cao</div>
+    <div class="info-box-item">
+        <p style="color: #94a3b8;">Chức năng nạp thẻ cào đang được tích hợp. Vui lòng liên hệ Admin qua Fanpage để được hỗ trợ nạp tiền thủ công nhanh nhất!</p>
+    </div>
+    """
+    return get_profile_layout("deposit", html)
+
+@app.route("/profile/recharge-atm")
+def profile_recharge_atm():
+    current_user = session.get("user")
+    if not current_user: return redirect(url_for("login"))
+    html = f"""
+    <div class="profile-page-title">Nạp tiền qua Ngân hàng / Momo</div>
+    <div class="profile-page-sub">Quét mã QR hoặc chuyển khoản trực tiếp</div>
+    <div class="info-box-item">
+        <p style="color: #94a3b8; line-height: 1.6;">
+            <b>Chủ tài khoản:</b> KUCHRICH<br>
+            <b>Ngân hàng:</b> MOMO / MB Bank<br>
+            <b>Số tài khoản:</b> Liên hệ Fanpage để lấy thông tin mới nhất.<br>
+            <b>Nội dung chuyển khoản:</b> <code style="color:#38bdf8;">nap tien {current_user}</code>
+        </p>
+    </div>
+    """
+    return get_profile_layout("deposit", html)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
