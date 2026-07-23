@@ -27,68 +27,29 @@ HISTORY = load_data(HISTORY_FILE)
 
 FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61583528522725"
 
+# Chú ý: Tên file ảnh ở đây chỉ để tên gốc, không kèm chữ /static/ để dùng chung với url_for
 SERVICES = [
     {
         "id": 1,
         "title": "DỊCH VỤ GROW A GARDEN 2",
         "tag": "Đang giảm 50%",
         "badge": "100% UY TÍN + AN TOÀN",
-        "img": "/static/dich-vu-grg2.jpg",
+        "img": "dich-vu-grg2.jpg",
         "link": "/service/grow-a-garden"
     }
 ]
 
 ITEMS_GAG = [
-    {
-        "name": "LEGENDARY SPRINKLER X10", 
-        "price": "24.000 đ", 
-        "img": "/static/sprinkler_x10.png"
-    },
-    {
-        "name": "LEGENDARY SPRINKLER X30", 
-        "price": "54.000 đ", 
-        "img": "/static/sprinkler_x30.png"
-    },
-    {
-        "name": "LEGENDARY SPRINKLER X50", 
-        "price": "84.000 đ", 
-        "img": "/static/sprinkler_x50.png"
-    },
-    {
-        "name": "UNICORN", 
-        "price": "34.000 đ", 
-        "img": "/static/unicorn.png"
-    },
-    {
-        "name": "GOLDEN DRAGONFLY", 
-        "price": "24.000 đ", 
-        "img": "/static/golden_dragonfly.png"
-    },
-    {
-        "name": "BEE", 
-        "price": "14.000 đ", 
-        "img": "/static/bee.png"
-    },
-    {
-        "name": "MUSHROOM SEED X100", 
-        "price": "54.000 đ", 
-        "img": "/static/mushroom_seed_x100.png"
-    },
-    {
-        "name": "BAMBOO SEED X100", 
-        "price": "10.000 đ", 
-        "img": "/static/bamboo_seed_x100.png"
-    },
-    {
-        "name": "MUSHROOM SEED X10", 
-        "price": "14.000 đ", 
-        "img": "/static/mushroom_seed_x10.png"
-    },
-    {
-        "name": "MUSHROOM SEED X100 + BAMBOO SEED X100", 
-        "price": "54.000 đ", 
-        "img": "/static/combo_mushroom_bamboo.png"
-    },
+    {"name": "LEGENDARY SPRINKLER X10", "price": "24.000 đ", "img": "sprinkler_x10.png"},
+    {"name": "LEGENDARY SPRINKLER X30", "price": "54.000 đ", "img": "sprinkler_x30.png"},
+    {"name": "LEGENDARY SPRINKLER X50", "price": "84.000 đ", "img": "sprinkler_x50.png"},
+    {"name": "UNICORN", "price": "34.000 đ", "img": "unicorn.png"},
+    {"name": "GOLDEN DRAGONFLY", "price": "24.000 đ", "img": "golden_dragonfly.png"},
+    {"name": "BEE", "price": "14.000 đ", "img": "bee.png"},
+    {"name": "MUSHROOM SEED X100", "price": "54.000 đ", "img": "mushroom_seed_x100.png"},
+    {"name": "BAMBOO SEED X100", "price": "10.000 đ", "img": "bamboo_seed_x100.png"},
+    {"name": "MUSHROOM SEED X10", "price": "14.000 đ", "img": "mushroom_seed_x10.png"},
+    {"name": "MUSHROOM SEED X100 + BAMBOO SEED X100", "price": "54.000 đ", "img": "combo_mushroom_bamboo.png"},
 ]
 
 BASE_CSS = """
@@ -335,7 +296,6 @@ def get_header():
         balance = USERS[current_user].get("balance", 0)
         admin_link = '<a href="/admin" class="menu-item" style="color:#f59e0b;"><span class="arrow">❯</span> Trang Admin Quản Lý</a>' if current_user == "Kuchrich" else ""
         
-        # ĐÃ KHÔI PHỤC ĐẦY ĐỦ MENU TÀI KHOẢN KHÁCH TRÊN HEADER
         auth_html = f'''
         <div class="user-dropdown" id="userDropdown" onclick="toggleUserMenu(event)">
             <div class="user-btn-box">
@@ -388,7 +348,6 @@ def get_profile_layout(active_tab, main_content_html):
     current_user = session.get("user", "")
     balance = USERS[current_user].get("balance", 0) if current_user in USERS else 0
     
-    # ĐÃ KHÔI PHỤC ĐẦY ĐỦ CÁC MỤC Ở SIDEBAR BÊN TRÁI
     return f"""
     <!DOCTYPE html>
     <html>
@@ -459,14 +418,53 @@ def home():
     {get_header()}
     <div class='container'>
         {banner_html}
-        <h2>DANH MỤC DỊCH VỤ</h2>
-        <div class='card-grid'>
+        <h2 style="text-align: center; margin-bottom: 25px; color: #38bdf8;">DANH MỤC DỊCH VỤ</h2>
+        <div class='card-grid' style="display: flex; justify-content: center;">
             {cards_html}
         </div>
     </div>
 </body>
 </html>"""
     return html_content
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        if username in USERS and USERS[username]["password"] == password:
+            session["user"] = username
+            return redirect(url_for("home"))
+        else:
+            return f"""<!DOCTYPE html><html><head>{BASE_CSS}</head><body>{get_header()}<div class='container' style='text-align:center;'><h3 style='color:#ef4444;'>❌ Sai tên tài khoản hoặc mật khẩu!</h3><br><a href='/login' style='color:#38bdf8;'>Thử lại</a></div></body></html>"""
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Đăng nhập - Kuchrich</title>{BASE_CSS}</head>
+    <body>
+        {get_header()}
+        <div class="container" style="max-width: 400px; background: #131a2e; padding: 30px; border-radius: 12px; border: 1px solid #1e293b;">
+            <h2 style="text-align:center; color:#0284c7; margin-bottom:20px;">ĐĂNG NHẬP</h2>
+            <form method="POST">
+                <div style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom: 5px; font-size:14px;">Tên tài khoản:</label>
+                    <input type="text" name="username" class="roblox-input" required placeholder="Nhập tên tài khoản...">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom: 5px; font-size:14px;">Mật khẩu:</label>
+                    <input type="password" name="password" class="roblox-input" required placeholder="Nhập mật khẩu...">
+                </div>
+                <button type="submit" class="btn-buy-now">ĐĂNG NHẬP</button>
+            </form>
+            <p style="text-align:center; margin-top:15px; font-size:14px; color:#9ca3af;">
+                Chưa có tài khoản? <a href="/register" style="color:#10b981; font-weight:bold;">Đăng ký ngay</a>
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -519,8 +517,6 @@ def register():
 def logout():
     session.pop("user", None)
     return redirect(url_for("home"))
-
-# --- TẤT CẢ ROUTE TRANG CÁ NHÂN ĐÃ ĐƯỢC MỞ LẠI ---
 
 @app.route("/profile/info")
 def profile_info():
@@ -668,7 +664,7 @@ def service_grow_a_garden():
         price_val = item['price'].replace(' đ', '')
         items_html += f"""
         <div class="card-item" onclick="openBuyModal('{item['name']}', '{item['price']}')" style="cursor: pointer;">
-            <img class="card-item-img" src="{item['img']}">
+            <img class="card-item-img" src="{url_for('static', filename=item['img'])}">
             <div class="card-item-body">
                 <div class="card-item-title">{item['name']}</div>
                 <div class="card-item-price">{price_val} <u>đ</u></div>
@@ -710,14 +706,69 @@ def service_grow_a_garden():
     </html>
     """
 
-# ----------------------------------------------------
-# TRANG ADMIN QUẢN LÝ DÀNH RIÊNG CHO TK: Kuchrich
-# ----------------------------------------------------
+# API XỬ LÝ MUA HÀNG
+@app.route("/api/buy", methods=["POST"])
+def api_buy():
+    current_user = session.get("user")
+    if not current_user or current_user not in USERS:
+        return jsonify({"success": False, "message": "Vui lòng đăng nhập trước khi mua!"})
+    
+    data = request.get_json()
+    item_name = data.get("item_name")
+    price_str = data.get("price")
+    roblox_user = data.get("roblox_user")
+    
+    try:
+        price_num = int(price_str.replace(" đ", "").replace(".", "").replace(",", ""))
+    except:
+        price_num = 0
+        
+    balance = USERS[current_user].get("balance", 0)
+    if balance < price_num:
+        return jsonify({"success": False, "message": "Số dư tài khoản không đủ để thanh toán!"})
+        
+    # Trừ tiền
+    USERS[current_user]["balance"] -= price_num
+    save_data(DB_FILE, USERS)
+    
+    # Tạo lịch sử
+    order_id = "ORD" + datetime.now().strftime("%Y%m%d%H%M%S")
+    time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    
+    if current_user not in HISTORY:
+        HISTORY[current_user] = []
+        
+    order_record = {
+        "id": order_id,
+        "type": "Mua dịch vụ",
+        "item": item_name,
+        "price": price_str,
+        "price_num": price_num,
+        "roblox_user": roblox_user,
+        "time": time_str,
+        "status": "Đang xử lý"
+    }
+    
+    # Biến động số dư
+    balance_record = {
+        "id": order_id,
+        "type": f"Thanh toán mua {item_name}",
+        "price": price_str,
+        "time": time_str
+    }
+    
+    HISTORY[current_user].append(order_record)
+    HISTORY[current_user].append(balance_record)
+    save_data(HISTORY_FILE, HISTORY)
+    
+    return jsonify({"success": True, "message": "Đặt hàng thành công! Đang chờ Admin duyệt đơn."})
+
+# TRANG ADMIN QUẢN LÝ
 @app.route("/admin")
 def admin_page():
     current_user = session.get("user")
     if current_user != "Kuchrich":
-        return f"<!DOCTYPE html><html><head>{BASE_CSS}</head><body>{get_header()}<div class='container' style='text-align:center;'><h2 style='color:#ef4444;'>🚫 CHỈ TRẢI NGHIỆM DÀNH CHO ADMIN KUCHRICH!</h2><a href='/login' style='color:#38bdf8;'>Đăng nhập Admin tại đây</a></div></body></html>"
+        return f"<!DOCTYPE html><html><head>{BASE_CSS}</head><body>{get_header()}<div class='container' style='text-align:center;'><h2 style='color:#ef4444;'>🚫 CHỈ DÀNH CHO ADMIN KUCHRICH!</h2><a href='/login' style='color:#38bdf8;'>Đăng nhập Admin</a></div></body></html>"
 
     all_orders = []
     for user_name, user_hist in HISTORY.items():
@@ -733,176 +784,121 @@ def admin_page():
     for order in all_orders:
         status = order.get("status", "Đang xử lý")
         if status == "Hoàn thành":
-            btn_action = '<span style="color:#10b981; font-weight:bold;">✅ Hoàn thành</span>'
+            status_badge = '<span style="color:#10b981; font-weight:bold;">Đã hoàn thành</span>'
+            action_btn = '<span style="color:#64748b;">-</span>'
         elif status == "Đã hủy":
-            btn_action = '<span style="color:#ef4444; font-weight:bold;">❌ Đã hủy & Hoàn tiền</span>'
+            status_badge = '<span style="color:#ef4444; font-weight:bold;">Đã hủy & Hoàn tiền</span>'
+            action_btn = '<span style="color:#64748b;">-</span>'
         else:
-            btn_action = f"""
+            status_badge = '<span style="color:#f59e0b; font-weight:bold;">Đang chờ xử lý</span>'
+            action_btn = f'''
             <button class="btn-action" 
-                    data-id="{order.get('id', '')}" 
-                    data-userweb="{order.get('user_web', '')}" 
-                    data-roblox="{order.get('roblox_user', '')}" 
-                    data-item="{order.get('item', '')}" 
-                    data-price="{order.get('price', '')}" 
-                    onclick="openAdminModalFromBtn(this)">
-                ⚙️ Xử lý đơn
-            </button>
-            """
+                data-id="{order.get('id')}" 
+                data-userweb="{order.get('user_web')}" 
+                data-roblox="{order.get('roblox_user')}" 
+                data-item="{order.get('item')}" 
+                data-price="{order.get('price')}" 
+                onclick="openAdminModalFromBtn(this)">Xử lý đơn</button>
+            '''
 
         rows += f"""
         <tr>
             <td><b style="color:#38bdf8;">{order.get('id')}</b></td>
-            <td><b>{order.get('user_web')}</b></td>
-            <td><code style="color:#f59e0b; font-size:15px;">{order.get('roblox_user')}</code></td>
-            <td>{order.get('item')}</td>
-            <td><b style="color:#ef4444;">{order.get('price')}</b></td>
+            <td><b style="color:#fff;">{order.get('user_web')}</b></td>
+            <td><code style="color:#f59e0b;">{order.get('roblox_user')}</code></td>
+            <td>{order.get('item')} (<b style="color:#ef4444;">{order.get('price')}</b>)</td>
             <td>{order.get('time')}</td>
-            <td>{btn_action}</td>
+            <td>{status_badge}</td>
+            <td>{action_btn}</td>
         </tr>
         """
 
-    if not all_orders:
-        rows = '<tr><td colspan="7" class="empty-msg">Chưa có đơn cày nào từ khách hàng!</td></tr>'
+    if not rows:
+        rows = '<tr><td colspan="7" class="empty-msg">Chưa có đơn hàng nào cần xử lý</td></tr>'
 
-    return f"""
+    html = f"""
     <!DOCTYPE html>
     <html>
-    <head><title>Admin Kuchrich - Quản Lý Đơn Cày</title>{BASE_CSS}</head>
+    <head><title>Trang Quản Lý Admin - Kuchrich</title>{BASE_CSS}</head>
     <body>
         {get_header()}
-        <div class="container">
-            <h2 class="section-title" style="color:#f59e0b;">👑 PANEL QUẢN LÝ DÀNH CHO KUCHRICH 👑</h2>
-            <div style="background:#131a2e; padding:25px; border-radius:12px; border:1px solid #1e293b;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>MÃ ĐƠN</th>
-                            <th>USER WEB</th>
-                            <th>ACC ROBLOX CẦN CÀY</th>
-                            <th>VẬT PHẨM MUA</th>
-                            <th>GIÁ TIỀN</th>
-                            <th>THỜI GIAN</th>
-                            <th>HÀNH ĐỘNG</th>
-                        </tr>
-                    </thead>
-                    <tbody>{rows}</tbody>
-                </table>
-            </div>
+        <div class="container" style="max-width: 1300px;">
+            <h2 class="section-title" style="color:#f59e0b;">👑 TRANG QUẢN LÝ ĐƠN HÀNG (ADMIN)</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>MÃ ĐƠN</th>
+                        <th>USER WEB</th>
+                        <th>ACC ROBLOX</th>
+                        <th>VẬT PHẨM</th>
+                        <th>THỜI GIAN</th>
+                        <th>TRẠNG THÁI</th>
+                        <th>THƯƠNG LƯỢNG / DUYỆT</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
         </div>
 
         <div class="modal-overlay" id="adminModal">
             <div class="modal-card">
                 <span class="modal-close" onclick="closeAdminModal()">&times;</span>
-                <div class="modal-header-title" style="color:#f59e0b;">⚙️ BẢNG XÁC NHẬN ĐƠN HÀNG</div>
+                <div class="modal-header-title">Xử lý đơn hàng</div>
                 
                 <div class="admin-info-box">
-                    <div>Mã đơn: <b id="admOrderId" style="color:#38bdf8;"></b></div>
-                    <div>Khách hàng (Web): <b id="admUserWeb" style="color:#fff;"></b></div>
-                    <div>Acc Roblox: <b id="admRobloxUser" style="color:#f59e0b;"></b></div>
-                    <div>Vật phẩm: <b id="admItem" style="color:#fff;"></b></div>
-                    <div>Giá tiền: <b id="admPrice" style="color:#ef4444;"></b></div>
+                    <div><b>Mã đơn:</b> <span id="admOrderId" style="color:#38bdf8;"></span></div>
+                    <div><b>Khách Web:</b> <span id="admUserWeb" style="color:#fff;"></span></div>
+                    <div><b>Acc Roblox:</b> <span id="admRobloxUser" style="color:#f59e0b;"></span></div>
+                    <div><b>Vật phẩm:</b> <span id="admItem"></span></div>
+                    <div><b>Số tiền:</b> <span id="admPrice" style="color:#ef4444;"></span></div>
                 </div>
 
-                <div class="modal-label">CHỌN TRẠNG THÁI XỬ LÝ:</div>
                 <div class="admin-btn-group">
-                    <button class="btn-confirm-done" onclick="processOrder('complete')">✅ ĐÃ HOÀN THÀNH</button>
-                    <button class="btn-confirm-cancel" onclick="processOrder('cancel')">❌ HỦY ĐƠN & HOÀN TIỀN</button>
+                    <button class="btn-confirm-done" onclick="processOrder('complete')">✔ XÁC NHẬN HOÀN THÀNH</button>
+                    <button class="btn-confirm-cancel" onclick="processOrder('cancel')">✖ HỦY ĐƠN (HOÀN TIỀN)</button>
                 </div>
             </div>
         </div>
     </body>
     </html>
     """
+    return html
 
-# ----------------------------------------------------
-# API MUA HÀNG & XỬ LÝ ĐƠN (ADMIN)
-# ----------------------------------------------------
-@app.route('/api/buy', methods=['POST'])
-def buy_item():
+@app.route("/api/admin/process-order", methods=["POST"])
+def api_admin_process_order():
     current_user = session.get("user")
-    if not current_user or current_user not in USERS:
-        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập tài khoản khách!'})
-
+    if current_user != "Kuchrich":
+        return jsonify({"success": False, "message": "Không có quyền thực hiện!"})
+        
     data = request.get_json()
-    item_name = data.get('item_name')
-    raw_price = data.get('price', '0').replace('.', '').replace(' đ', '').strip()
-    price = int(raw_price) if raw_price.isdigit() else 0
-    roblox_user = data.get('roblox_user', '').strip()
-
-    if not roblox_user:
-        return jsonify({'success': False, 'message': 'Vui lòng nhập tài khoản Roblox!'})
-
-    user = USERS.get(current_user)
-    current_balance = user.get('balance', 0)
-
-    if current_balance < price:
-        return jsonify({'success': False, 'message': f'Số dư không đủ! Còn thiếu {price - current_balance:,} đ.'})
-
-    user['balance'] -= price
-    USERS[current_user] = user
-    save_data(DB_FILE, USERS)
-
-    if current_user not in HISTORY:
-        HISTORY[current_user] = []
-
-    new_tx = {
-        "id": f"GAG{int(datetime.now().timestamp())}",
-        "type": "Mua dịch vụ",
-        "item": item_name,
-        "price": f"{price:,} đ",
-        "raw_price_num": price,
-        "roblox_user": roblox_user,
-        "time": datetime.now().strftime("%H:%M %d/%m/%Y"),
-        "status": "Đang duyệt"
-    }
-
-    HISTORY[current_user].append(new_tx)
-    save_data(HISTORY_FILE, HISTORY)
-
-    return jsonify({'success': True, 'message': f'Mua thành công {item_name}! Đã gửi đơn cho Admin duyệt.'})
-
-@app.route('/api/admin/process-order', methods=['POST'])
-def admin_process_order():
-    if session.get("user") != "Kuchrich":
-        return jsonify({'success': False, 'message': 'Bạn không có quyền Admin!'})
-
-    data = request.get_json()
-    order_id = data.get('order_id')
-    username = data.get('username')
-    action = data.get('action')
-
-    if username in HISTORY:
-        for order in HISTORY[username]:
-            if order.get("id") == order_id:
-                if action == 'complete':
-                    order["status"] = "Hoàn thành"
-                    save_data(HISTORY_FILE, HISTORY)
-                    return jsonify({'success': True, 'message': 'Đã cập nhật: HOÀN THÀNH!'})
-                
-                elif action == 'cancel':
+    order_id = data.get("order_id")
+    target_user = data.get("username")
+    action = data.get("action")
+    
+    if target_user not in HISTORY:
+        return jsonify({"success": False, "message": "Không tìm thấy user!"})
+        
+    found = False
+    for order in HISTORY[target_user]:
+        if order.get("id") == order_id:
+            if action == "complete":
+                order["status"] = "Hoàn thành"
+                found = True
+            elif action == "cancel":
+                if order.get("status") != "Đã hủy":
                     order["status"] = "Đã hủy"
-                    refund_amount = order.get("raw_price_num", 0)
-                    
-                    if username in USERS:
-                        USERS[username]["balance"] += refund_amount
+                    refund_amount = order.get("price_num", 0)
+                    if target_user in USERS:
+                        USERS[target_user]["balance"] += refund_amount
                         save_data(DB_FILE, USERS)
+                found = True
+            break
+    
+    if found:
+        save_data(HISTORY_FILE, HISTORY)
+        return jsonify({"success": True, "message": "Thao tác thành công!"})
+    else:
+        return jsonify({"success": False, "message": "Không tìm thấy đơn hàng trong hệ thống!"})
 
-                    save_data(HISTORY_FILE, HISTORY)
-                    return jsonify({'success': True, 'message': f'Đã HỦY ĐƠN và HOÀN LẠI {refund_amount:,}đ cho khách thành công!'})
-
-    return jsonify({'success': False, 'message': 'Không tìm thấy đơn hàng!'})
-
-@app.route('/googlebfa23e64126a0fb.html')
-def google_verify():
-    return "google-site-verification: googlebfa23e64126a0fb.html"
 if __name__ == "__main__":
-    USERS["Kuchrich"] = {"password": "sigmaboi2012", "balance": 9999999}
-    
-    if "testuser" not in USERS:
-        USERS["testuser"] = {"password": "123", "balance": 200000}
-    
-    save_data(DB_FILE, USERS)
-
-    print("🚀 Shop đang chạy tại: http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
