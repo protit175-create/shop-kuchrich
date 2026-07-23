@@ -33,7 +33,7 @@ SERVICES = [
         "title": "DỊCH VỤ GROW A GARDEN 2",
         "tag": "Đang giảm 50%",
         "badge": "100% UY TÍN + AN TOÀN",
-        "img": "https://via.placeholder.com/400x220/171d33/38bdf8?text=Grow+A+Garden+2",
+        "img": "/static/dich-vu-grg2.jpg",
         "link": "/service/grow-a-garden"
     }
 ]
