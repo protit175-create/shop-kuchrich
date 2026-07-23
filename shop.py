@@ -428,9 +428,7 @@ def get_profile_layout(active_tab, main_content_html):
 # ----------------------------------------------------
 
 @app.route("/")
-@app.route("/")
 def home():
-    # Thêm đoạn banner ở đây
     banner_html = """
     <div style="text-align: center; margin: 20px 0;">
         <img src="/static/dich-vu-grg2.jpg" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
@@ -449,48 +447,9 @@ def home():
             </div>
         </div>
         """
+    
     html_content = f"<!DOCTYPE html><html><head><meta name='google-site-verification' content='tTmA8Wj8zOGGSbDXkTtrk0KHC1VabAkyAqxpRAnoOWY' /><title>Kuchrich - Shop Game Roblox</title>{BASE_CSS}</head><body>{get_header()}<div class='container'>{banner_html}<h2>DANH MỤC DỊCH VỤ</h2><div class='card-grid'>{cards_html}</div></div></body></html>"
     return html_content
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-
-        if username in USERS and USERS[username]["password"] == password:
-            session["user"] = username
-            if username == "Kuchrich":
-                return redirect(url_for("admin_page"))
-            return redirect(url_for("home"))
-        else:
-            return f"<!DOCTYPE html><html><head>{BASE_CSS}</head><body>{get_header()}<div class='container' style='text-align:center;'><h3 style='color:#ef4444;'>❌ Sai tài khoản hoặc mật khẩu!</h3><br><a href='/login' style='color:#38bdf8;'>Thử lại</a></div></body></html>"
-
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head><title>Đăng nhập - Kuchrich</title>{BASE_CSS}</head>
-    <body>
-        {get_header()}
-        <div class="container" style="max-width: 400px; background: #131a2e; padding: 30px; border-radius: 12px; border: 1px solid #1e293b;">
-            <h2 style="text-align:center; color:#38bdf8; margin-bottom:20px;">ĐĂNG NHẬP</h2>
-            <form method="POST">
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; font-size:14px;">Tài khoản:</label>
-                    <input type="text" name="username" class="roblox-input" required placeholder="Nhập tên tài khoản...">
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom: 5px; font-size:14px;">Mật khẩu:</label>
-                    <input type="password" name="password" class="roblox-input" required placeholder="Nhập mật khẩu...">
-                </div>
-                <button type="submit" class="btn-buy-now">ĐĂNG NHẬP</button>
-            </form>
-            <p style="text-align:center; margin-top:15px; font-size:14px; color:#9ca3af;">
-                Chưa có tài khoản? <a href="/register" style="color:#10b981; font-weight:bold;">Đăng ký ngay</a>
-            </p>
-        </div>
-    </body>
-    </html>
-    """
-
-@app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
