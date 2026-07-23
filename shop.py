@@ -287,9 +287,31 @@ BASE_CSS = """
             }
         });
     }
-</script>
-"""
+    def get_header():
+    current_user = session.get("user", "")
+    auth_html = ""
+    if current_user:
+        auth_html = f'''
+        <div class="user-menu-container" style="position: relative; display: inline-block;">
+            <a href="/profile" class="btn-user-avatar" style="color: #fff; text-decoration: none; font-weight: bold;">👤 {current_user}</a>
+            <div class="user-dropdown-menu" style="display: none; position: absolute; right: 0; background: #1a1d20; border: 1px solid #2c3034; padding: 10px; border-radius: 5px; min-width: 150px; z-index: 1000;">
+                <a href="/profile" style="color: #fff; display: block; padding: 5px 0; text-decoration: none;">Trang cá nhân</a>
+                <a href="/logout" style="color: #ff4d4d; display: block; padding: 5px 0; text-decoration: none;">Đăng xuất</a>
+            </div>
+        </div>
+        '''
+    else:
+        auth_html = '''
+        <a href="/login"><button class="btn-login">ĐĂNG NHẬP</button></a>
+        <a href="/register"><button class="btn-register">ĐĂNG KÝ</button></a>
+        '''
 
+    return f'''
+    <header>
+        <a href="/" class="logo">Kuchrich</a>
+        <nav>
+            <a href="/">TRANG CHỦ</a>
+            
 def get_header():
     current_user = session.get("user")
     if current_user and current_user in USERS:
@@ -331,38 +353,29 @@ def get_header():
         <a href="/login"><button class="btn-login">ĐĂNG NHẬP</button></a>
         <a href="/register"><button class="btn-register">ĐĂNG KÝ</button></a>
         '''
-    
+
     return f'''
     <header>
         <a href="/" class="logo">Kuchrich</a>
         <nav>
             <a href="/">TRANG CHỦ</a>
-            {"<a href='/admin' style='color:#f59e0b; font-weight:bold;'>👑 TRANG QUẢN LÝ (ADMIN)</a>" if current_user == "Kuchrich" else ""}
-            <a href="{FACEBOOK_URL}" target="_blank">FANPAGE ↗</a>
+            
+            <!-- Menu Nạp tiền Dropdown -->
+            <span class="custom-dropdown" style="display: inline-block; position: relative;">
+                <a href="#" class="dropdown-toggle text-light text-decoration-none px-2" id="napTienDropdown" data-bs-toggle="dropdown" aria-expanded="false">NẠP TIỀN</a>
+                <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="napTienDropdown" style="position: absolute; background: #1a1d20; border: 1px solid #2c3034; padding: 5px 0;">
+                    <li><a class="dropdown-item" href="/profile/recharge" style="color: #fff; padding: 8px 15px; display: block; text-decoration: none;">💳 Nạp thẻ cào</a></li>
+                    <li><hr class="dropdown-divider" style="border-color: #444; margin: 5px 0;"></li>
+                    <li><a class="dropdown-item" href="/profile/recharge-atm" style="color: #fff; padding: 8px 15px; display: block; text-decoration: none;">🏦 Bank</a></li>
+                </ul>
+            </span>
+
+            {'<a href="/admin" style="color:#f59e0b; font-weight:bold;">👑 TRANG QUẢN LÝ (ADMIN)</a>' if current_user == "Kuchrich" else ""}
+            <a href="{FACEBOOK_URL}" target="_blank">FANPAGE </a>
         </nav>
         <div class="auth-btns">{auth_html}</div>
     </header>
     '''
-
-def get_profile_layout(active_tab, main_content_html):
-    current_user = session.get("user", "")
-    balance = USERS[current_user].get("balance", 0) if current_user in USERS else 0
-    
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head><title>Trang Cá Nhân - Kuchrich</title>{BASE_CSS}</head>
-    <body>
-        {get_header()}
-        <div class="profile-layout">
-            <div class="profile-sidebar">
-                <div class="side-user-card">
-                    <img class="side-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed={current_user}">
-                    <div class="side-user-info">
-                        <div style="font-size: 13px; color: #94a3b8;">Tên: <b style="color:#fff;">{current_user}</b></div>
-                        <div style="font-size: 13px; color: #94a3b8;">Số dư: <b style="color:#3b82f6;">{balance:,} đ</b></div>
-                    </div>
-                </div>
                 
                 <div class="side-menu-group">
                     <div class="side-menu-title">Tài khoản <span>▲</span></div>
@@ -1010,3 +1023,117 @@ def history_account():
     return render_template('history.html', history=user_history, title='Lịch sử mua tài khoản', username=session['user'])
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+    # --- XÁC THỰC GOOGLE SEARCH CONSOLE ---
+@app.route('/google0bfa23e64126a0fb.html')
+def google_verify():
+    return "google-site-verification: google0bfa23e64126a0fb.html"
+
+# --- CÁC ROUTE QUẢN LÝ TÀI KHOẢN & NẠP TIỀN ---
+@app.route('/profile')
+def profile_info():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    users = load_data(DB_FILE)
+    user_data = users.get(session['user'], {"id": "91221073591111764923", "balance": 0})
+    return render_template('profile_info.html', user=user_data, username=session['user'], active='info')
+
+@app.route('/profile/change-password', methods=['GET', 'POST'])
+def change_password():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    msg = None
+    msg_type = "error"
+    if request.method == 'POST':
+        current_pass = request.form.get('current_password')
+        new_pass = request.form.get('new_password')
+        confirm_pass = request.form.get('confirm_password')
+        
+        users = load_data(DB_FILE)
+        user_info = users.get(session['user'], {})
+        stored_pass = user_info.get('password', '123456') if isinstance(user_info, dict) else '123456'
+        
+        if current_pass != stored_pass:
+            msg = 'Mật khẩu hiện tại không chính xác!'
+        elif len(new_pass) < 8:
+            msg = 'Mật khẩu mới phải có ít nhất 8 ký tự và 1 số!'
+        elif new_pass != confirm_pass:
+            msg = 'Xác nhận mật khẩu mới không khớp!'
+        else:
+            if isinstance(users[session['user']], dict):
+                users[session['user']]['password'] = new_pass
+            else:
+                users[session['user']] = {"password": new_pass, "balance": 0}
+            save_data(DB_FILE, users)
+            msg = 'Đổi mật khẩu thành công!'
+            msg_type = "success"
+            
+    return render_template('change_password.html', msg=msg, msg_type=msg_type, username=session['user'])
+
+@app.route('/profile/recharge', methods=['GET', 'POST'])
+def recharge_card():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    msg = None
+    if request.method == 'POST':
+        telco = request.form.get('telco')
+        amount = request.form.get('amount')
+        serial = request.form.get('serial')
+        code = request.form.get('code')
+        
+        if not serial or not code or not amount:
+            msg = 'Vui lòng nhập đầy đủ Số seri và Mã thẻ!'
+        else:
+            history = load_data(HISTORY_FILE)
+            if not isinstance(history, list):
+                history = []
+            history.append({
+                'user': session['user'],
+                'type': 'Nạp thẻ cào',
+                'details': f'Nhà mạng: {telco} - Mệnh giá: {amount} - Seri: {serial}',
+                'status': 'Đang chờ duyệt',
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            save_data(HISTORY_FILE, history)
+            msg = 'Gửi thẻ thành công! Hệ thống sẽ duyệt trong vài phút.'
+            
+    return render_template('recharge_card.html', msg=msg, username=session['user'])
+
+@app.route('/profile/recharge-atm')
+def recharge_atm():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    transfer_content = f"HDG {abs(hash(session['user'])) % 10000000000}"
+    return render_template('recharge_atm.html', transfer_content=transfer_content, username=session['user'])
+
+@app.route('/history/recharge')
+def history_recharge():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user'] == session['user'] and 'nạp' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử nạp thẻ', username=session['user'])
+
+@app.route('/history/atm')
+def history_atm_route():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user'] == session['user'] and 'atm' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử nạp ATM', username=session['user'])
+
+@app.route('/history/service')
+def history_service():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user'] == session['user'] and 'dịch vụ' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử mua dịch vụ', username=session['user'])
+
+@app.route('/history/account')
+def history_account():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user'] == session['user'] and 'tài khoản' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử mua tài khoản', username=session['user'])
