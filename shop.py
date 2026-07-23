@@ -429,9 +429,9 @@ def get_profile_layout(active_tab, main_content_html):
 
 @app.route("/")
 def home():
-    banner_html = """
+    banner_html = f"""
     <div style="text-align: center; margin: 20px 0;">
-        <img src="/static/dich-vu-grg2.jpg" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <img src="{url_for('static', filename='dich-vu-grg2.jpg')}" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
     </div>
     """
     
