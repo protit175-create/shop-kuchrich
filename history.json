@@ -1,0 +1,33 @@
+{
+    "Kuchrich": [
+        {
+            "time": "23:01 22/07/2026",
+            "type": "VIETTEL",
+            "amount": "10,000",
+            "pin": "456845784678",
+            "seri": "5678567856785678",
+            "status": "Đang duyệt"
+        },
+        {
+            "id": "GAG1784764522",
+            "type": "Mua dịch vụ",
+            "item": "LEGENDARY SPRINKLER X30",
+            "price": "54,000 đ",
+            "raw_price_num": 54000,
+            "roblox_user": "sss",
+            "time": "06:55 23/07/2026",
+            "status": "Đã hủy"
+        }
+    ],
+    "testuser": [
+        {
+            "id": "GAG1784763615",
+            "type": "Mua dịch vụ",
+            "item": "LEGENDARY SPRINKLER X50",
+            "price": "84,000 đ",
+            "roblox_user": "Kuchrich",
+            "time": "06:40 23/07/2026",
+            "status": "Hoàn thành"
+        }
+    ]
+}
