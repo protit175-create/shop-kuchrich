@@ -900,5 +900,113 @@ def api_admin_process_order():
     else:
         return jsonify({"success": False, "message": "Không tìm thấy đơn hàng trong hệ thống!"})
 
+# --- CÁC ROUTE QUẢN LÝ TÀI KHOẢN & NẠP TIỀN ---
+@app.route('/profile')
+def profile_info():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    users = load_data(DB_FILE)
+    user_data = users.get(session['user'], {"id": "91221073591111764923", "balance": 0})
+    return render_template('profile_info.html', user=user_data, username=session['user'], active='info')
+
+@app.route('/profile/change-password', methods=['GET', 'POST'])
+def change_password():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    msg = None
+    msg_type = "error"
+    if request.method == 'POST':
+        current_pass = request.form.get('current_password')
+        new_pass = request.form.get('new_password')
+        confirm_pass = request.form.get('confirm_password')
+        
+        users = load_data(DB_FILE)
+        user_info = users.get(session['user'], {})
+        stored_pass = user_info.get('password', '123456') if isinstance(user_info, dict) else '123456'
+        
+        if current_pass != stored_pass:
+            msg = 'Mật khẩu hiện tại không chính xác!'
+        elif len(new_pass) < 8:
+            msg = 'Mật khẩu mới phải có ít nhất 8 ký tự và 1 số!'
+        elif new_pass != confirm_pass:
+            msg = 'Xác nhận mật khẩu mới không khớp!'
+        else:
+            if isinstance(users[session['user']], dict):
+                users[session['user']]['password'] = new_pass
+            else:
+                users[session['user']] = {"password": new_pass, "balance": 0}
+            save_data(DB_FILE, users)
+            msg = 'Đổi mật khẩu thành công!'
+            msg_type = "success"
+            
+    return render_template('change_password.html', msg=msg, msg_type=msg_type, username=session['user'])
+
+@app.route('/profile/recharge', methods=['GET', 'POST'])
+def recharge_card():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    msg = None
+    if request.method == 'POST':
+        telco = request.form.get('telco')
+        amount = request.form.get('amount')
+        serial = request.form.get('serial')
+        code = request.form.get('code')
+        
+        if not serial or not code or not amount:
+            msg = 'Vui lòng nhập đầy đủ Số seri và Mã thẻ!'
+        else:
+            history = load_data(HISTORY_FILE)
+            if not isinstance(history, list):
+                history = []
+            history.append({
+                'user': session['user'],
+                'type': 'Nạp thẻ cào',
+                'details': f'Nhà mạng: {telco} - Mệnh giá: {amount} - Seri: {serial}',
+                'status': 'Đang chờ duyệt',
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            save_data(HISTORY_FILE, history)
+            msg = 'Gửi thẻ thành công! Hệ thống sẽ duyệt trong vài phút.'
+            
+    return render_template('recharge_card.html', msg=msg, username=session['user'])
+
+@app.route('/profile/recharge-atm')
+def recharge_atm():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    transfer_content = f"HDG {abs(hash(session['user'])) % 10000000000}"
+    return render_template('recharge_atm.html', transfer_content=transfer_content, username=session['user'])
+
+@app.route('/history/recharge')
+def history_recharge():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user') == session['user'] and 'nạp' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử nạp thẻ', username=session['user'])
+
+@app.route('/history/atm')
+def history_atm_route():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user') == session['user'] and 'atm' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử nạp ATM', username=session['user'])
+
+@app.route('/history/service')
+def history_service():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user') == session['user'] and 'dịch vụ' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử mua dịch vụ', username=session['user'])
+
+@app.route('/history/account')
+def history_account():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    history = load_data(HISTORY_FILE)
+    user_history = [h for h in history if isinstance(h, dict) and h.get('user') == session['user'] and 'tài khoản' in h.get('type', '').lower()]
+    return render_template('history.html', history=user_history, title='Lịch sử mua tài khoản', username=session['user'])
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
