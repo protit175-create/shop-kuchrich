@@ -9,6 +9,9 @@ app.secret_key = "kuchrich_secret_key_2026"
 DB_FILE = "users.json"
 HISTORY_FILE = "history.json"
 
+# Tự động tạo thư mục static nếu chưa có
+os.makedirs("static", exist_ok=True)
+
 def load_data(file_path):
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
@@ -352,25 +355,33 @@ def get_header():
     </header>
     
     <script>
-        function toggleNapMenu(event) {
+        function toggleNapMenu(event) {{
             event.stopPropagation();
             var dropdown = document.getElementById("napTienDropdownMenu");
             dropdown.classList.toggle("active");
-        }
-        document.addEventListener("click", function() {
+        }}
+        document.addEventListener("click", function() {{
             var napDropdown = document.getElementById("napTienDropdownMenu");
             if (napDropdown) napDropdown.classList.remove("active");
-        });
+        }});
     </script>
     '''
 
 def get_profile_layout(active_tab, main_content_html):
     current_user = session.get("user")
     balance = USERS.get(current_user, {}).get("balance", 0) if current_user else 0
-    return f"""
-    <!DOCTYPE html>
+    
+    # Kích hoạt màu xanh cho menu đang chọn
+    tabs = {"info": "", "balance": "", "deposit": "", "withdraw": ""}
+    if active_tab in tabs:
+        tabs[active_tab] = "active"
+
+    return f"""<!DOCTYPE html>
     <html>
-    <head><title>Quản lý tài khoản - Kuchrich</title>{BASE_CSS}</head>
+    <head>
+        <title>Trang cá nhân - Kuchrich</title>
+        {BASE_CSS}
+    </head>
     <body>
         {get_header()}
         <div class="profile-layout">
@@ -379,33 +390,29 @@ def get_profile_layout(active_tab, main_content_html):
                     <img class="side-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed={current_user}" alt="Avatar">
                     <div>
                         <div style="font-size: 14px; font-weight: bold; color: #fff;">{current_user}</div>
-                        <div style="font-size: 12px; color: #38bdf8;">Số dư: {balance:,} đ</div>
+                        <div style="font-size: 13px; color: #38bdf8; font-weight: bold;">{balance:,} đ</div>
                     </div>
                 </div>
-                
                 <div class="side-menu-group">
-                    <div class="side-menu-title">Tài khoản <span>▲</span></div>
-                    <a href="/profile/info" class="side-menu-item {'active' if active_tab == 'info' else ''}">❯ Thông tin chung</a>
-                </div>
-
-                <div class="side-menu-group">
-                    <div class="side-menu-title">Lịch sử <span>▲</span></div>
-                    <a href="/profile/history/balance" class="side-menu-item {'active' if active_tab == 'balance' else ''}">❯ Biến động số dư</a>
-                    <a href="/profile/history/deposit" class="side-menu-item {'active' if active_tab == 'deposit' else ''}">❯ Lịch sử nạp tiền</a>
-                    <a href="/profile/history/withdraw" class="side-menu-item {'active' if active_tab == 'withdraw' else ''}">❯ Lịch sử mua dịch vụ</a>
+                    <div class="side-menu-title">TÀI KHOẢN</div>
+                    <a href="/profile/info" class="side-menu-item {tabs['info']}">Thông tin tài khoản</a>
+                    <a href="/profile/history/balance" class="side-menu-item {tabs['balance']}">Biến động số dư</a>
+                    <a href="/profile/history/deposit" class="side-menu-item {tabs['deposit']}">Lịch sử nạp tiền</a>
+                    <a href="/profile/history/withdraw" class="side-menu-item {tabs['withdraw']}">Lịch sử mua hàng</a>
                 </div>
             </div>
-            <div class="profile-main">{main_content_html}</div>
+            <div class="profile-main">
+                {main_content_html}
+            </div>
         </div>
     </body>
-    </html>
-    """
+    </html>"""
 
 @app.route("/")
 def home():
     banner_html = f"""
     <div style="text-align: center; margin: 20px 0;">
-        <img src="{url_for('static', filename='dich-vu-grg2.jpg')}" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <img src="{url_for('static', filename='dich-vu-grg2.png')}" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
     </div>
     """
     
@@ -895,7 +902,12 @@ def api_admin_process_order():
             elif action == "cancel":
                 if order.get("status") != "Đã hủy":
                     order["status"] = "Đã hủy"
-                    refund_amount = order.get("price_num", 0)
+                    refund_amount = order.get("price_num")
+                    if refund_amount is None:
+                        try:
+                            refund_amount = int(order.get("price", "0").replace(" đ", "").replace(".", "").replace(",", ""))
+                        except:
+                            refund_amount = 0
                     if target_user in USERS:
                         USERS[target_user]["balance"] += refund_amount
                         save_data(DB_FILE, USERS)
