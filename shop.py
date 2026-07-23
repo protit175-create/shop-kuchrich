@@ -448,8 +448,7 @@ def home():
         </div>
         """
     
-    html_content = f"<!DOCTYPE html><html><head><meta name='google-site-verification' content='tTmA8Wj8zOGGSbDXkTtrk0KHC1VabAkyAqxpRAnoOWY' /><title>Kuchrich - Shop Game Roblox</title>{BASE_CSS}</head><body>{get_header()}<div class='container'>{banner_html}<h2>DANH MỤC DỊCH VỤ</h2><div class='card-grid'>{cards_html}</div></div></body></html>"
-    return html_content
+html_content = f"<!DOCTYPE html><html><head><meta name='google-site-verification' content='tTmA8Wj8zOGGSbDXkTtrk0KHC1VabAkyAqxpRAnoOWY' /><title>Kuchrich - Shop Game Roblox</title>{BASE_CSS}</head><body>{get_header()}<div class='container'>{banner_html}<h2>DANH MỤC DỊCH VỤ</h2><div class='card-grid'>{cards_html}</div></div></body></html>"
 def register():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
