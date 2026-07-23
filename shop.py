@@ -909,6 +909,9 @@ def admin_process_order():
 
     return jsonify({'success': False, 'message': 'Không tìm thấy đơn hàng!'})
 
+@app.route('/googlebfa23e64126a0fb.html')
+def google_verify():
+    return "google-site-verification: googlebfa23e64126a0fb.html"
 if __name__ == "__main__":
     USERS["Kuchrich"] = {"password": "sigmaboi2012", "balance": 9999999}
     
@@ -919,3 +922,4 @@ if __name__ == "__main__":
 
     print("🚀 Shop đang chạy tại: http://127.0.0.1:5000")
     app.run(debug=True, port=5000)
+
