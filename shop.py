@@ -439,7 +439,7 @@ def home():
     for item in SERVICES:
         cards_html += f"""
         <div class="card-item" style="max-width: 350px; margin: 0 auto; cursor: pointer;" onclick="window.location.href='{item['link']}'">
-            <img class="card-item-img" src="{item['img']}">
+            <img class="card-item-img" src="{url_for('static', filename=item['img'])}">
             <div class="card-item-body">
                 <div class="card-item-title">{item['title']}</div>
                 <p style="color: #ef4444; margin-bottom: 12px; font-size: 13px;">{item['tag']}</p>
