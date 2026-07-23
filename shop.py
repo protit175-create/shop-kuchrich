@@ -428,7 +428,15 @@ def get_profile_layout(active_tab, main_content_html):
 # ----------------------------------------------------
 
 @app.route("/")
+@app.route("/")
 def home():
+    # Thêm đoạn banner ở đây
+    banner_html = """
+    <div style="text-align: center; margin: 20px 0;">
+        <img src="/static/dich-vu-grg2.jpg" style="max-width: 600px; width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+    </div>
+    """
+    
     cards_html = ""
     for item in SERVICES:
         cards_html += f"""
@@ -441,7 +449,8 @@ def home():
             </div>
         </div>
         """
-    html_content = f"<!DOCTYPE html><html><head><meta name='google-site-verification' content='tTmA8Wj8zOGGSbDXkTtrk0KHC1VabAkyAqxpRAnoOWY' /><title>Kuchrich - Shop Game Roblox</title>{BASE_CSS}</head><body>{get_header()}<div class='container'><h2>DANH MỤC DỊCH VỤ</h2><div class='card-grid'>{cards_html}</div></div></body></html>"
+    
+    html_content = f"<!DOCTYPE html><html><head><meta name='google-site-verification' content='tTmA8Wj8zOGGSbDXkTtrk0KHC1VabAkyAqxpRAnoOWY' /><title>Kuchrich - Shop Game Roblox</title>{BASE_CSS}</head><body>{get_header()}<div class='container'>{banner_html}<h2>DANH MỤC DỊCH VỤ</h2><div class='card-grid'>{cards_html}</div></div></body></html>"
     return html_content
 
 @app.route("/login", methods=["GET", "POST"])
