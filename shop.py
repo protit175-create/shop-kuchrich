@@ -1,35 +1,35 @@
-import json
 import os
+import re
 from datetime import datetime
 from flask import Flask, request, redirect, url_for, jsonify, session
 
 app = Flask(__name__)
 app.secret_key = "kuchrich_secret_key_2026"
 
-DB_FILE = "users.json"
-HISTORY_FILE = "history.json"
-
-# Tự động tạo thư mục static nếu chưa có
-os.makedirs("static", exist_ok=True)
-
-def load_data(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except:
-                return {}
-    return {}
-
-def save_data(file_path, data):
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-USERS = load_data(DB_FILE)
-HISTORY = load_data(HISTORY_FILE)
-
 FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61583528522725"
 
+# --- KẾT NỐI FIREBASE ---
+import firebase_admin
+from firebase_admin import credentials, db
+
+cred = credentials.Certificate("firebase-key.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://kuchrich-shop-default-rtdb.asia-southeast1.firebasedatabase.app'
+})
+
+def load_data(node_name):
+    ref = db.reference(node_name)
+    data = ref.get()
+    return data if data else {}
+
+def save_data(node_name, data):
+    ref = db.reference(node_name)
+    ref.set(data)
+
+USERS = load_data('users')
+HISTORY = load_data('history')
+
+# ------------------------
 SERVICES = [
     {
         "id": 1,
@@ -344,7 +344,7 @@ def get_header():
                 <a href="#" class="dropdown-toggle" style="color: #9ca3af; text-decoration: none; margin: 0 15px; font-weight: 500;">NẠP TIỀN ▼</a>
                 <div class="dropdown-menu" style="width: 220px; left: 10px; top: calc(100% + 5px);">
                     <a href="/profile/recharge" class="menu-item" style="padding: 8px 0;"><span class="arrow">❯</span> 💳 Nạp thẻ cào</a>
-                    <a href="/profile/recharge-atm" class="menu-item" style="padding: 8px 0;"><span class="arrow">❯</span> 🏦 Chuyển khoản Bank</a>
+                    <a href="/nap-atm" class="menu-item" style="padding: 8px 0;"><span class="arrow">❯</span> 🏦 Chuyển khoản Bank</a>
                 </div>
             </div>
 
@@ -371,7 +371,6 @@ def get_profile_layout(active_tab, main_content_html):
     current_user = session.get("user")
     balance = USERS.get(current_user, {}).get("balance", 0) if current_user else 0
     
-    # Kích hoạt màu xanh cho menu đang chọn
     tabs = {"info": "", "balance": "", "deposit": "", "withdraw": ""}
     if active_tab in tabs:
         tabs[active_tab] = "active"
@@ -502,7 +501,7 @@ def register():
             "password": password,
             "balance": 0
         }
-        save_data(DB_FILE, USERS)
+        save_data('users', USERS)
         
         session["user"] = username
         return redirect(url_for("home"))
@@ -606,6 +605,24 @@ def profile_history_deposit():
     current_user = session.get("user")
     if not current_user: return redirect(url_for("login"))
     
+    user_history = HISTORY.get(current_user, [])
+    deposit_orders = [item for item in user_history if item.get("type") == "Nạp tiền qua ATM" or "title" in item]
+
+    if not deposit_orders:
+        table_body = '<tr><td colspan="5" class="empty-msg">Chưa có dữ liệu nạp tiền</td></tr>'
+    else:
+        table_body = ""
+        for item in reversed(deposit_orders):
+            table_body += f"""
+            <tr>
+                <td><b style="color:#38bdf8;">{item.get('id', '-')}</b></td>
+                <td>{item.get('title', 'Nạp qua ATM')}</td>
+                <td><b style="color:#10b981;">{item.get('price', '-')}</b></td>
+                <td>{item.get('date', item.get('time', '-'))}</td>
+                <td><span style="color:#10b981; font-weight:bold;">{item.get('status', 'Hoàn thành')}</span></td>
+            </tr>
+            """
+
     html = f"""
     <div class="profile-page-title">Lịch sử nạp tiền</div>
     <div class="profile-page-sub">Danh sách lượt nạp tiền qua Thẻ cào / Banking</div>
@@ -619,9 +636,7 @@ def profile_history_deposit():
                 <th>TRẠNG THÁI</th>
             </tr>
         </thead>
-        <tbody>
-            <tr><td colspan="5" class="empty-msg">Chưa có dữ liệu nạp tiền</td></tr>
-        </tbody>
+        <tbody>{table_body}</tbody>
     </table>
     """
     return get_profile_layout("deposit", html)
@@ -748,7 +763,7 @@ def api_buy():
         return jsonify({"success": False, "message": "Số dư tài khoản không đủ để thanh toán!"})
         
     USERS[current_user]["balance"] -= price_num
-    save_data(DB_FILE, USERS)
+    save_data('users', USERS)
     
     order_id = "ORD" + datetime.now().strftime("%Y%m%d%H%M%S")
     time_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -776,7 +791,7 @@ def api_buy():
     
     HISTORY[current_user].append(order_record)
     HISTORY[current_user].append(balance_record)
-    save_data(HISTORY_FILE, HISTORY)
+    save_data('history', HISTORY)
     
     return jsonify({"success": True, "message": "Đặt hàng thành công! Đang chờ Admin duyệt đơn."})
 
@@ -910,19 +925,15 @@ def api_admin_process_order():
                             refund_amount = 0
                     if target_user in USERS:
                         USERS[target_user]["balance"] += refund_amount
-                        save_data(DB_FILE, USERS)
+                        save_data('users', USERS)
                 found = True
             break
     
     if found:
-        save_data(HISTORY_FILE, HISTORY)
+        save_data('history', HISTORY)
         return jsonify({"success": True, "message": "Thao tác thành công!"})
     else:
         return jsonify({"success": False, "message": "Không tìm thấy đơn hàng trong hệ thống!"})
-
-@app.route('/google0bfa23e64126a0fb.html')
-def google_verify():
-    return "google-site-verification: google0bfa23e64126a0fb.html"
 
 @app.route("/profile/recharge")
 def profile_recharge():
@@ -937,23 +948,136 @@ def profile_recharge():
     """
     return get_profile_layout("deposit", html)
 
-@app.route("/profile/recharge-atm")
-def profile_recharge_atm():
-    current_user = session.get("user")
-    if not current_user: return redirect(url_for("login"))
-    html = f"""
-    <div class="profile-page-title">Nạp tiền qua Ngân hàng / Momo</div>
-    <div class="profile-page-sub">Quét mã QR hoặc chuyển khoản trực tiếp</div>
-    <div class="info-box-item">
-        <p style="color: #94a3b8; line-height: 1.6;">
-            <b>Chủ tài khoản:</b> KUCHRICH<br>
-            <b>Ngân hàng:</b> MOMO / MB Bank<br>
-            <b>Số tài khoản:</b> Liên hệ Fanpage để lấy thông tin mới nhất.<br>
-            <b>Nội dung chuyển khoản:</b> <code style="color:#38bdf8;">nap tien {current_user}</code>
-        </p>
-    </div>
-    """
-    return get_profile_layout("deposit", html)
+# --- TRANG NẠP TIỀN QUA ATM / NGÂN HÀNG ---
+@app.route("/nap-atm")
+def nap_atm():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
+    username = session["user"]
+    noi_dung_ck = f"NAP {username.upper()}"
 
+    return f"""
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nạp tiền qua ATM - Kuchrich Shop</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+            body {{ background-color: #0b0f19; color: #e2e8f0; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }}
+            .main-card {{ background-color: #161e2e; border: 1px solid #243044; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }}
+            .text-highlight {{ color: #ef4444; font-weight: 700; }}
+            .btn-copy {{ background-color: #2563eb; color: #ffffff; border: none; border-radius: 8px; padding: 6px 14px; font-weight: 600; font-size: 0.85rem; }}
+            .btn-copy:hover {{ background-color: #1d4ed8; color: white; }}
+            .content-box {{ background-color: #0f172a; border: 2px dashed #ef4444; border-radius: 10px; padding: 12px 18px; }}
+            .qr-wrapper {{ background-color: #ffffff; padding: 12px; border-radius: 16px; display: inline-block; }}
+            .qr-img {{ max-width: 280px; width: 100%; border-radius: 8px; }}
+            .alert-info-custom {{ background-color: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); color: #93c5fd; border-radius: 10px; }}
+        </style>
+    </head>
+    <body class="py-5">
+        <div class="container" style="max-width: 950px;">
+            <a href="/" class="text-secondary text-decoration-none mb-3 d-inline-block"><i class="fa-solid fa-arrow-left me-2"></i>Quay lại trang chủ</a>
+            
+            <div class="main-card p-4 p-md-5">
+                <h3 class="fw-bold mb-1"><i class="fa-solid fa-building-columns text-primary me-2"></i>Nạp qua ATM (Tự động 24/7)</h3>
+                <p class="text-secondary mb-4">Chuyển khoản đúng nội dung, hệ thống sẽ <b>TỰ ĐỘNG CỘNG TIỀN</b> sau 1 - 3 phút!</p>
+
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-7">
+                        <div class="text-uppercase mb-4 text-primary fw-bold">Thông tin tài khoản ngân hàng</div>
+                        
+                        <div class="mb-3">
+                            <span class="text-secondary d-block fs-7">CHỦ TÀI KHOẢN:</span>
+                            <span class="fs-5 text-highlight">TRAN THI THUY AN</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-secondary d-block fs-7">NGÂN HÀNG:</span>
+                            <span class="fs-5 text-highlight">TPBank (Ngân hàng Tiên Phong)</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <span class="text-secondary d-block fs-7">SỐ TÀI KHOẢN:</span>
+                            <div class="d-flex align-items-center gap-3 mt-1">
+                                <span class="fs-4 text-highlight font-monospace">00096883303</span>
+                                <button class="btn-copy" onclick="copyText('00096883303')"><i class="fa-regular fa-copy me-1"></i>COPY STK</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <span class="text-secondary d-block mb-2 fs-7">Nội dung chuyển khoản (BẮT BUỘC):</span>
+                            <div class="content-box d-flex align-items-center justify-content-between">
+                                <span class="fs-5 text-highlight font-monospace" id="copy-content">{noi_dung_ck}</span>
+                                <button class="btn-copy" onclick="copyText('{noi_dung_ck}')"><i class="fa-regular fa-copy me-1"></i>COPY NỘI DUNG</button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info-custom p-3 fs-7 mb-0">
+                            <i class="fa-solid fa-bolt me-2 text-warning"></i>Ghi đúng nội dung <b>{noi_dung_ck}</b> để tiền tự động cộng vào tài khoản shop nhé!
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5 text-center">
+                        <div class="qr-wrapper">
+                            <!-- Mã QR.png nằm trong static -->
+                            <img src="/static/QR.png" alt="Mã QR TPBank" class="qr-img">
+                        </div>
+                        <p class="text-secondary fs-7 mt-3"><i class="fa-solid fa-qrcode me-1"></i>Quét mã QR để chuyển nhanh</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function copyText(text) {{
+                navigator.clipboard.writeText(text).then(function() {{
+                    alert('Đã sao chép: ' + text);
+                }});
+            }}
+        </script>
+    </body>
+    </html>
+    """
+
+# --- CỔNG RECEIVER WEBHOOK (SEPAY TỰ ĐỘNG CỘNG TIỀN) ---
+@app.route("/api/webhook/sepay", methods=["POST"])
+def webhook_sepay():
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "No data"}), 400
+
+    content = data.get("content", "").upper()
+    transfer_amount = int(data.get("transferAmount", 0))
+
+    match = re.search(r"NAP\s+([A-ZA-Z0-9_]+)", content)
+    if match and transfer_amount > 0:
+        username_nap = match.group(1).lower()
+        
+        for user_key in USERS:
+            if user_key.lower() == username_nap:
+                USERS[user_key]["balance"] += transfer_amount
+                save_data('users', USERS)
+                
+                if user_key not in HISTORY:
+                    HISTORY[user_key] = []
+                HISTORY[user_key].append({
+                    "id": f"ATM{int(datetime.now().timestamp())}",
+                    "title": "Nạp tiền qua ATM (Tự động)",
+                    "price": f"+{transfer_amount:,} đ",
+                    "price_num": transfer_amount,
+                    "date": datetime.now().strftime("%H:%M %d/%m/%Y"),
+                    "status": "Hoàn thành"
+                })
+                save_data('history', HISTORY)
+                
+                return jsonify({"success": True, "message": f"Đã cộng {transfer_amount}đ cho {user_key}"}), 200
+
+    return jsonify({"success": False, "message": "Nội dung không hợp lệ hoặc user không tồn tại"}), 200
+
+# Lệnh khởi chạy server (Luôn đặt ở dưới cùng)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

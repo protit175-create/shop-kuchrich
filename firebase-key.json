@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "kuchrich-shop",
+  "private_key_id": "3ba960b90757939513a826334d88a59d8e959769",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDUNYO4ohHnJLv6\n68lJCOmAWRpOawITyQPxwFIJkRrm65kF4arhlv1rIWNK6jJgu5SlQojQOPf4IDKL\nDlUzb6ADdgvBAw4EakjvUGGllubwS3nk2UYB2E8Jnyn2p75Krv2eYQqwSv24LVSN\nOYz6qWwgXkbdBRECOX8HlCtUBLjifbcMpKXto7Vgpx3OpQsFEt2FKQyOCI8klI3w\ni+bMLFWLd0oz+E2bi0OuYdyi7CvdLqbvogpUHuuEP0aIHIdFhAtH70xQQzQ2XOOr\nb1Kn+uvUNbQg+ynPYdu4W5NKFVtjJu6AofGZKEtibzvcPN/o2FiMkHzn5ShHb21P\n0R3XRg4VAgMBAAECggEABRf/TolB0oiL3UB7M75CzJjItt4M6n3/L1olVtwdePmG\nUiEnenXfz9FjyzRVQpIMVApMltvR4NTYk4SVqvjZZ4oWEiQz9plj2ecrXxbWMvCg\nafaFLMhibUx53n/RnGf7y2IbKD3vPg0vnNNR7sUKxPJa01IACPZNPS3/wnkyi1tp\n9yTVfYoilkjLFQEkGdw02BCtntTBDsZrTPAWUd31UUEPECKrNCRoViyLMuLqRi49\nr/maFH3nhT1p09zVdiuBLyO2znUMnXdGJu1QqTkfjXMFG5oYUizf6fJKInUyrJjw\nA+1Qn1rc6b4cGdOF09YyUM1K6w2/lA8KknoKdQWB6QKBgQDuFVXXK9+JWvThPVK6\nzl7VAiyhePXciIppWdhFaQ6euqixQCZtOfa8lz1C1W4Bgozb3QayZB8seyQXKxXg\nWU7Rf7iMLbaKABSm1lS4cFkcuQh41g5MwmaCaTUSZ9O1M8ckMj7TOgyXz9be7kt3\n4Y7Xfb8+njXx7gD5xBJtfOXulwKBgQDkLbZGr5nXHWll+K0Vid1vIpR//gMhIP0c\noP/WvEkiYo5kZMPqoMjZs4O0L6hcJ0TEPSRbd1xbwwzxmxVDdHVphXR0M0fHtbQa\nQ4ZdH0sJF1vT6LoaTbNMDFwe1PwRTEJvNv1yTlcAdzvh/BJfDkNCXnn9m47jUEov\ndNy7t1tqMwKBgQCzadqNUt+aV7PQBPFSGvB13rSZXlkQvshnSbBj5h6BWTKEmE4c\n46BfUC13LvU+KA5UJUTFrBOd5pI072AF9+cgkvoUkOJNLnBhpYSklO1iasHKpayT\nBbBQOE4pN5rfo0w/p6mWbdlNke9fgf3XMl/9XiJ/YqROU0fi8HHelk+DswKBgQCo\noMOxT3rgyAKpcnLvlPhJdoPKZz2G0StdafpIhtOBjtZuiS1kiziD8q+ljQbeO8MN\nR6ZD1l0yD17Ueujm9f0DY7YhXfhxNe6I7lgxH7xDVrjtTXOjlsKntAasXnh+jB4Y\ntMnvHMgdNwDRTImDKDY6qTl8W+boRODeW335WFM9kwKBgQCyFmqMfIdSj8VdGNbn\nBUsAhc2eixEKksaTeFrYNQzlJ7txAocM1aOj0NSgteBs8kkbtRGdL7ttvoP/dAsx\nNyh3x6pVPh+5vy7a8rcKrHOZMKWpSiPqCz624WqGp8pYtUUDu9CNCkWwrNx3CHGN\nOwpRFRGGtMKaLLDdfJs4znC6/w==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@kuchrich-shop.iam.gserviceaccount.com",
+  "client_id": "111871405321447822918",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40kuchrich-shop.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
