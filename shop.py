@@ -1,6 +1,9 @@
 import os
 import re
 from datetime import datetime
+import hashlib
+import requests
+import time
 from flask import Flask, request, redirect, url_for, jsonify, session
 
 app = Flask(__name__)
@@ -580,9 +583,9 @@ def profile_history_balance():
             table_body += f"""
             <tr>
                 <td><b style="color:#38bdf8;">{item.get('id', '-')}</b></td>
-                <td>{item.get('type', '-')}</td>
-                <td><b style="color:#ef4444;">-{item.get('price', '-')}</b></td>
-                <td>{item.get('time', '-')}</td>
+                <td>{item.get('type', item.get('title', '-'))}</td>
+                <td><b style="color:#ef4444;">{item.get('price', '-')}</b></td>
+                <td>{item.get('time', item.get('date', '-'))}</td>
             </tr>
             """
 
@@ -609,7 +612,7 @@ def profile_history_deposit():
     if not current_user: return redirect(url_for("login"))
     
     user_history = HISTORY.get(current_user, [])
-    deposit_orders = [item for item in user_history if item.get("type") == "Nạp tiền qua ATM" or "title" in item]
+    deposit_orders = [item for item in user_history if "Nạp tiền" in item.get("title", "") or "Nạp" in item.get("type", "")]
 
     if not deposit_orders:
         table_body = '<tr><td colspan="5" class="empty-msg">Chưa có dữ liệu nạp tiền</td></tr>'
@@ -619,7 +622,7 @@ def profile_history_deposit():
             table_body += f"""
             <tr>
                 <td><b style="color:#38bdf8;">{item.get('id', '-')}</b></td>
-                <td>{item.get('title', 'Nạp qua ATM')}</td>
+                <td>{item.get('title', 'Nạp tiền')}</td>
                 <td><b style="color:#10b981;">{item.get('price', '-')}</b></td>
                 <td>{item.get('date', item.get('time', '-'))}</td>
                 <td><span style="color:#10b981; font-weight:bold;">{item.get('status', 'Hoàn thành')}</span></td>
@@ -788,7 +791,7 @@ def api_buy():
     balance_record = {
         "id": order_id,
         "type": f"Thanh toán mua {item_name}",
-        "price": price_str,
+        "price": f"-{price_str}",
         "time": time_str
     }
     
@@ -938,16 +941,85 @@ def api_admin_process_order():
     else:
         return jsonify({"success": False, "message": "Không tìm thấy đơn hàng trong hệ thống!"})
 
+# --- TRANG NẠP THẺ CÀO (GIAO DIỆN TÍCH HỢP FORM TỰ ĐỘNG) ---
 @app.route("/profile/recharge")
 def profile_recharge():
     current_user = session.get("user")
     if not current_user: return redirect(url_for("login"))
+    
     html = f"""
     <div class="profile-page-title">Nạp thẻ cào tự động</div>
-    <div class="profile-page-sub">Hệ thống nạp thẻ cào chiết khấu cao</div>
-    <div class="info-box-item">
-        <p style="color: #94a3b8;">Chức năng nạp thẻ cào đang được tích hợp. Vui lòng liên hệ Admin qua Fanpage để được hỗ trợ nạp tiền thủ công nhanh nhất!</p>
+    <div class="profile-page-sub">Hệ thống nạp thẻ cào chiết khấu cao, tự động cộng tiền sau 30s</div>
+    
+    <div class="info-box-item" style="max-width: 600px;">
+        <form id="cardForm" onsubmit="submitCard(event)">
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; margin-bottom:5px;">Loại thẻ:</label>
+                <select name="telco" class="roblox-input" required>
+                    <option value="">-- Chọn loại thẻ --</option>
+                    <option value="VIETTEL">Viettel</option>
+                    <option value="VINAPHONE">Vinaphone</option>
+                    <option value="MOBIFONE">Mobifone</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; margin-bottom:5px;">Mệnh giá (VND):</label>
+                <select name="amount" class="roblox-input" required>
+                    <option value="">-- Chọn mệnh giá --</option>
+                    <option value="10000">10.000 đ</option>
+                    <option value="20000">20.000 đ</option>
+                    <option value="50000">50.000 đ</option>
+                    <option value="100000">100.000 đ</option>
+                    <option value="200000">200.000 đ</option>
+                    <option value="500000">500.000 đ</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; margin-bottom:5px;">Mã thẻ cào:</label>
+                <input type="text" name="code" class="roblox-input" required placeholder="Nhập mã thẻ...">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; margin-bottom:5px;">Số seri:</label>
+                <input type="text" name="serial" class="roblox-input" required placeholder="Nhập số seri...">
+            </div>
+
+            <button type="submit" class="btn-buy-now" id="btnSubmitCard">GỬI THẺ NGAY</button>
+        </form>
     </div>
+
+    <script>
+    function submitCard(event) {{
+        event.preventDefault();
+        var form = document.getElementById('cardForm');
+        var formData = new FormData(form);
+        var btn = document.getElementById('btnSubmitCard');
+        
+        btn.innerText = "Đang gửi thẻ...";
+        btn.disabled = true;
+
+        fetch('/nap-the', {{
+            method: 'POST',
+            body: formData
+        }})
+        .then(res => res.json())
+        .then(data => {{
+            alert(data.message);
+            if(data.status === 'success') {{
+                form.reset();
+            }}
+            btn.innerText = "GỬI THẺ NGAY";
+            btn.disabled = false;
+        }})
+        .catch(err => {{
+            alert('Có lỗi xảy ra, vui lòng thử lại!');
+            btn.innerText = "GỬI THẺ NGAY";
+            btn.disabled = false;
+        }});
+    }}
+    </script>
     """
     return get_profile_layout("deposit", html)
 
@@ -991,7 +1063,7 @@ def nap_atm():
 
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-7">
-                        <div class="text-uppercase mb-4 text-primary fw-bold">Thông tin tài khoản ngân hàng</div>
+                        <div class="text-uppercase mb-4 text-primary fw-bold">Thông giải tài khoản ngân hàng</div>
                         
                         <div class="mb-3">
                             <span class="text-secondary d-block fs-7">CHỦ TÀI KHOẢN:</span>
@@ -1046,7 +1118,7 @@ def nap_atm():
     </html>
     """
 
-# --- CỔNG RECEIVER WEBHOOK (SEPAY TỰ ĐỘNG CỘNG TIỀN) ---
+# --- CỔNG RECEIVER WEBHOOK (SEPAY TỰ ĐỘNG CỘNG TIỀN ATM) ---
 @app.route("/api/webhook/sepay", methods=["POST"])
 def webhook_sepay():
     data = request.get_json()
@@ -1081,15 +1153,8 @@ def webhook_sepay():
 
     return jsonify({"success": False, "message": "Nội dung không hợp lệ hoặc user không tồn tại"}), 200
 
-# Lệnh khởi chạy server (Luôn đặt ở dưới cùng)
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
 
-    import hashlib
-import requests
-import time
-
-# ROUTE 1: Khách hàng gửi thẻ từ Web Shop lên
+# --- ROUTE 1: Khách hàng gửi thẻ từ Web Shop lên ---
 @app.route('/nap-the', methods=['POST'])
 def nap_the():
     if 'user' not in session:
@@ -1125,38 +1190,56 @@ def nap_the():
         
         # 99 nghĩa là thẻ đã gửi thành công lên hệ thống, chờ duyệt
         if result.get('status') == 99:
-            db.child("cards").child(request_id).set({
+            db.reference(f'cards/{request_id}').set({
                 'username': session['user'],
                 'amount': amount,
                 'status': 'pending'
             })
-            return jsonify({'status': 'success', 'message': 'Gửi thẻ thành công! Vui lòng chờ 10-30s hệ thống duyệt.'})
+            return jsonify({'status': 'success', 'message': 'Gửi thẻ thành công! Vui lòng chờ 10-60s hệ thống duyệt.'})
         else:
-            return jsonify({'status': 'error', 'message': result.get('message', 'Thẻ không hợp lệ!')})
+            return jsonify({'status': 'error', 'message': result.get('message', 'Thẻ không hợp lệ hoặc bị lỗi từ nhà mạng!')})
     except Exception as e:
         return jsonify({'status': 'error', 'message': 'Lỗi kết nối máy chủ nạp thẻ!'})
 
 
-# ROUTE 2: Callback tự động nhận kết quả từ Thesieure để CỘNG TIỀN
+# --- ROUTE 2: Callback tự động nhận kết quả từ Thesieure để CỘNG TIỀN THẺ CÀO ---
 @app.route('/callback_card', methods=['POST', 'GET'])
 def callback_card():
     status = request.args.get('status') or request.form.get('status')
     request_id = request.args.get('request_id') or request.form.get('request_id')
     declared_value = request.args.get('declared_value') or request.form.get('declared_value')
     
-    # Status = 1 nghĩa là thẻ ĐÚNG
+    # Status = 1 nghĩa là thẻ ĐÚNG, nạp thành công
     if str(status) == '1':
-        card_info = db.child("cards").child(request_id).get().val()
+        card_info = db.reference(f'cards/{request_id}').get()
         if card_info and card_info.get('status') == 'pending':
-            username = card_info['username']
+            username = card_info.get('username')
             add_amount = int(declared_value)
             
-            # Cộng tiền cho người dùng trên Firebase
-            current_balance = db.child("users").child(username).child("balance").get().val() or 0
-            new_balance = current_balance + add_amount
-            db.child("users").child(username).update({'balance': new_balance})
+            # 1. Cập nhật trạng thái thẻ trên db
+            db.reference(f'cards/{request_id}').update({'status': 'success'})
             
-            # Đổi trạng thái thẻ thành đã nạp thành công
-            db.child("cards").child(request_id).update({'status': 'success'})
+            # 2. Cộng tiền cho User (Đồng bộ với biến bộ nhớ USERS để web nhận diện ngay)
+            if username in USERS:
+                USERS[username]["balance"] += add_amount
+                save_data('users', USERS)
+                
+                # 3. Ghi lại lịch sử nạp
+                if username not in HISTORY:
+                    HISTORY[username] = []
+                HISTORY[username].append({
+                    "id": f"CARD{int(time.time())}",
+                    "title": "Nạp thẻ cào (Tự động)",
+                    "price": f"+{add_amount:,} đ",
+                    "price_num": add_amount,
+                    "date": datetime.now().strftime("%H:%M %d/%m/%Y"),
+                    "status": "Hoàn thành"
+                })
+                save_data('history', HISTORY)
             
     return 'OK', 200
+
+
+# Lệnh khởi chạy server (LUÔN ĐẶT Ở DƯỚI CÙNG)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
