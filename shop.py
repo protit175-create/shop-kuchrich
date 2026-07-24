@@ -8,6 +8,9 @@ app.secret_key = "kuchrich_secret_key_2026"
 
 FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61583528522725"
 
+PARTNER_ID = "49683444915"
+PARTNER_KEY = "MÃ_BẤM_NÚT_XEM_CỦA_BRO"
+
 # --- KẾT NỐI FIREBASE ---
 import firebase_admin
 from firebase_admin import credentials, db
@@ -1081,3 +1084,79 @@ def webhook_sepay():
 # Lệnh khởi chạy server (Luôn đặt ở dưới cùng)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+    import hashlib
+import requests
+import time
+
+# ROUTE 1: Khách hàng gửi thẻ từ Web Shop lên
+@app.route('/nap-the', methods=['POST'])
+def nap_the():
+    if 'user' not in session:
+        return jsonify({'status': 'error', 'message': 'Vui lòng đăng nhập trước!'})
+    
+    telco = request.form.get('telco')      # Viettel, Vinaphone, Mobifone...
+    amount = request.form.get('amount')    # 10000, 20000, 50000...
+    code = request.form.get('code')        # Mã thẻ
+    serial = request.form.get('serial')    # Số seri
+    
+    request_id = str(int(time.time()))     # Tạo mã giao dịch ngẫu nhiên
+    
+    # Tạo mã MD5 sign bảo mật theo yêu cầu Thesieure
+    sign_str = PARTNER_KEY + code + serial
+    sign = hashlib.md5(sign_str.encode('utf-8')).hexdigest()
+    
+    # Dữ liệu gửi sang Thesieure
+    payload = {
+        'request_id': request_id,
+        'code': code,
+        'partner_id': PARTNER_ID,
+        'telco': telco,
+        'serial': serial,
+        'amount': amount,
+        'sign': sign,
+        'command': 'charging'
+    }
+    
+    try:
+        # Gửi yêu cầu gạch thẻ sang Thesieure
+        response = requests.post('https://thesieure.com/chargingws/v2', data=payload)
+        result = response.json()
+        
+        # 99 nghĩa là thẻ đã gửi thành công lên hệ thống, chờ duyệt
+        if result.get('status') == 99:
+            db.child("cards").child(request_id).set({
+                'username': session['user'],
+                'amount': amount,
+                'status': 'pending'
+            })
+            return jsonify({'status': 'success', 'message': 'Gửi thẻ thành công! Vui lòng chờ 10-30s hệ thống duyệt.'})
+        else:
+            return jsonify({'status': 'error', 'message': result.get('message', 'Thẻ không hợp lệ!')})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': 'Lỗi kết nối máy chủ nạp thẻ!'})
+
+
+# ROUTE 2: Callback tự động nhận kết quả từ Thesieure để CỘNG TIỀN
+@app.route('/callback_card', methods=['POST', 'GET'])
+def callback_card():
+    status = request.args.get('status') or request.form.get('status')
+    request_id = request.args.get('request_id') or request.form.get('request_id')
+    declared_value = request.args.get('declared_value') or request.form.get('declared_value')
+    
+    # Status = 1 nghĩa là thẻ ĐÚNG
+    if str(status) == '1':
+        card_info = db.child("cards").child(request_id).get().val()
+        if card_info and card_info.get('status') == 'pending':
+            username = card_info['username']
+            add_amount = int(declared_value)
+            
+            # Cộng tiền cho người dùng trên Firebase
+            current_balance = db.child("users").child(username).child("balance").get().val() or 0
+            new_balance = current_balance + add_amount
+            db.child("users").child(username).update({'balance': new_balance})
+            
+            # Đổi trạng thái thẻ thành đã nạp thành công
+            db.child("cards").child(request_id).update({'status': 'success'})
+            
+    return 'OK', 200
