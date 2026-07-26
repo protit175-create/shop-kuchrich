@@ -12,7 +12,7 @@ app.secret_key = "kuchrich_secret_key_2026"
 FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61583528522725"
 
 PARTNER_ID = "49683444915"
-PARTNER_KEY = "MÃ_BẤM_NÚT_XEM_CỦA_BRO"
+PARTNER_KEY = "133ab8ae2e5cb85dd59fd2538a34a4ee"
 
 # --- KẾT NỐI FIREBASE ---
 import firebase_admin
@@ -324,6 +324,7 @@ def get_header():
                 <div class="menu-group">
                     <div class="menu-title">TÀI KHOẢN</div>
                     <a href="/profile/info" class="menu-item"><span class="arrow">❯</span> Thông tin tài khoản</a>
+                    <a href="/profile/change-password" class="menu-item"><span class="arrow">❯</span> Đổi mật khẩu</a>
                     <a href="/profile/history/balance" class="menu-item"><span class="arrow">❯</span> Biến động số dư</a>
                     <a href="/profile/history/deposit" class="menu-item"><span class="arrow">❯</span> Lịch sử nạp tiền</a>
                     <a href="/profile/history/withdraw" class="menu-item"><span class="arrow">❯</span> Lịch sử mua hàng</a>
@@ -377,7 +378,7 @@ def get_profile_layout(active_tab, main_content_html):
     current_user = session.get("user")
     balance = USERS.get(current_user, {}).get("balance", 0) if current_user else 0
     
-    tabs = {"info": "", "balance": "", "deposit": "", "withdraw": ""}
+    tabs = {"info": "", "change_password": "", "balance": "", "deposit": "", "withdraw": ""}
     if active_tab in tabs:
         tabs[active_tab] = "active"
 
@@ -401,6 +402,7 @@ def get_profile_layout(active_tab, main_content_html):
                 <div class="side-menu-group">
                     <div class="side-menu-title">TÀI KHOẢN</div>
                     <a href="/profile/info" class="side-menu-item {tabs['info']}">Thông tin tài khoản</a>
+                    <a href="/profile/change-password" class="side-menu-item {tabs['change_password']}">Đổi mật khẩu</a>
                     <a href="/profile/history/balance" class="side-menu-item {tabs['balance']}">Biến động số dư</a>
                     <a href="/profile/history/deposit" class="side-menu-item {tabs['deposit']}">Lịch sử nạp tiền</a>
                     <a href="/profile/history/withdraw" class="side-menu-item {tabs['withdraw']}">Lịch sử mua hàng</a>
@@ -756,13 +758,27 @@ def api_buy():
     
     data = request.get_json()
     item_name = data.get("item_name")
-    price_str = data.get("price")
     roblox_user = data.get("roblox_user")
     
-    try:
-        price_num = int(price_str.replace(" đ", "").replace(".", "").replace(",", ""))
-    except:
-        price_num = 0
+    # --- BẢO MẬT: Tìm giá trị thật của vật phẩm từ DB/Biến trên Server ---
+    price_str = ""
+    price_num = 0
+    item_found = False
+    
+    for item in ITEMS_GAG:
+        if item["name"] == item_name:
+            price_str = item["price"]
+            try:
+                # Xử lý chuỗi giá trị (VD: "54.000 đ" -> 54000)
+                price_num = int(price_str.replace(" đ", "").replace(".", "").replace(",", ""))
+            except:
+                price_num = 0
+            item_found = True
+            break
+            
+    if not item_found or price_num == 0:
+        return jsonify({"success": False, "message": "Vật phẩm không hợp lệ hoặc không tồn tại!"})
+    # -------------------------------------------------------------------
         
     balance = USERS[current_user].get("balance", 0)
     if balance < price_num:
@@ -1239,6 +1255,83 @@ def callback_card():
             
     return 'OK', 200
 
+@app.route("/profile/change-password", methods=["GET", "POST"])
+def profile_change_password():
+    current_user = session.get("user")
+    if not current_user:
+        return redirect(url_for("login"))
+    
+    msg = ""
+    msg_type = ""
+
+    if request.method == "POST":
+        old_pass = request.form.get("old_password", "").strip()
+        new_pass = request.form.get("new_password", "").strip()
+        confirm_pass = request.form.get("confirm_password", "").strip()
+
+        # Lấy thông tin pass hiện tại từ dict USERS
+        user_data = USERS.get(current_user, {})
+        current_db_pass = user_data.get("password", "")
+
+        if old_pass != current_db_pass:
+            msg = "Mật khẩu hiện tại không chính xác!"
+            msg_type = "error"
+        elif new_pass != confirm_pass:
+            msg = "Mật khẩu mới và xác nhận mật khẩu không khớp!"
+            msg_type = "error"
+        elif old_pass == new_pass:
+            msg = "Mật khẩu mới không được trùng với mật khẩu cũ!"
+            msg_type = "error"
+        elif len(new_pass) < 6:
+            msg = "Mật khẩu mới phải có ít nhất 6 ký tự!"
+            msg_type = "error"
+        else:
+            # Cập nhật mật khẩu mới vào Firebase & bộ nhớ USERS
+            USERS[current_user]["password"] = new_pass
+            save_data('users', USERS)
+            msg = "Đổi mật khẩu thành công!"
+            msg_type = "success"
+
+    # HTML Giao diện trang Đổi Mật Khẩu (Chuẩn style Dark Theme của Kuchrich Shop)
+    alert_html = ""
+    if msg:
+        border_color = "#22c55e" if msg_type == "success" else "#ef4444"
+        bg_color = "rgba(34, 197, 94, 0.15)" if msg_type == "success" else "rgba(239, 68, 68, 0.15)"
+        text_color = "#86efac" if msg_type == "success" else "#fca5a5"
+        alert_html = f'''
+        <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid {border_color}; background: {bg_color}; color: {text_color}; font-size: 14px; font-weight: 600;">
+            {msg}
+        </div>
+        '''
+
+    html = f"""
+    <div class="profile-page-title">Đổi mật khẩu</div>
+    <div class="profile-page-sub">Cập nhật mật khẩu thường xuyên để bảo vệ tài khoản Roblox & số dư của bạn</div>
+    
+    {alert_html}
+
+    <div class="info-box-item" style="max-width: 550px; padding: 24px;">
+        <form method="POST">
+            <div style="margin-bottom: 18px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; font-weight:600; margin-bottom:8px;">MẬT KHẨU HIỆN TẠI</label>
+                <input type="password" name="old_password" class="roblox-input" required placeholder="Nhập mật khẩu hiện tại...">
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; font-weight:600; margin-bottom:8px;">MẬT KHẨU MỚI</label>
+                <input type="password" name="new_password" class="roblox-input" minlength="6" required placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)...">
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display:block; font-size:13px; color:#94a3b8; font-weight:600; margin-bottom:8px;">XÁC NHẬN MẬT KHẨU MỚI</label>
+                <input type="password" name="confirm_password" class="roblox-input" required placeholder="Nhập lại mật khẩu mới...">
+            </div>
+
+            <button type="submit" class="btn-buy-now" style="background: #0284c7;">CẬP NHẬT MẬT KHẨU</button>
+        </form>
+    </div>
+    """
+    return get_profile_layout("change_password", html)
 
 # Lệnh khởi chạy server (LUÔN ĐẶT Ở DƯỚI CÙNG)
 if __name__ == "__main__":
