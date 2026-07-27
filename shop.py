@@ -967,6 +967,26 @@ def profile_recharge():
     <div class="profile-page-title">Nạp thẻ cào tự động</div>
     <div class="profile-page-sub">Hệ thống nạp thẻ cào chiết khấu cao, tự động cộng tiền sau 30s</div>
     
+    <!-- BẢNG THÔNG BÁO CHIẾT KHẤU CHO KHÁCH -->
+    <div style="background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; max-width: 600px;">
+        <div style="color: #38bdf8; font-weight: bold; margin-bottom: 10px; font-size: 15px;">BẢNG CHIẾT KHẤU THẺ CÀO:</div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #334155; padding-bottom: 8px; margin-bottom: 8px;">
+            <span>Viettel</span>
+            <span>Thực nhận <b style="color:#10b981;">82.5%</b> <span style="color:#ef4444; font-size:12px;">(Phí 17.5%)</span></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #334155; padding-bottom: 8px; margin-bottom: 8px;">
+            <span>Vinaphone</span>
+            <span>Thực nhận <b style="color:#10b981;">83.5%</b> <span style="color:#ef4444; font-size:12px;">(Phí 16.5%)</span></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; margin-bottom: 8px;">
+            <span>Mobifone</span>
+            <span>Thực nhận <b style="color:#10b981;">82.5%</b> <span style="color:#ef4444; font-size:12px;">(Phí 17.5%)</span></span>
+        </div>
+        <div style="color: #f59e0b; font-size: 12.5px; margin-top: 10px; font-style: italic;">
+            * LƯU Ý QUAN TRỌNG: Chọn sai mệnh giá mất 100% giá trị thẻ. Ví dụ: Nạp 100k Viettel bạn sẽ nhận được 82.500 đ vào web.
+        </div>
+    </div>
+    
     <div class="info-box-item" style="max-width: 600px;">
         <form id="cardForm" onsubmit="submitCard(event)">
             <div style="margin-bottom: 15px;">
