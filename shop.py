@@ -1217,6 +1217,12 @@ def nap_the():
     except Exception as e:
         return jsonify({'status': 'error', 'message': 'Lỗi kết nối máy chủ nạp thẻ!'})
 
+# --- BẢNG TỈ LỆ CHIẾT KHẤU THẺ CÀO (THÊM MỚI Ở ĐÂY) ---
+CARD_RATES = {
+    'VIETTEL': 0.825,   # Khách nhận 82.5% (TSR trừ 17.5%)
+    'VINAPHONE': 0.835, # Khách nhận 83.5% (TSR trừ 16.5%)
+    'MOBIFONE': 0.825,  # Khách nhận 82.5% (TSR trừ 17.5%)
+}
 
 # --- ROUTE 2: Callback tự động nhận kết quả từ Thesieure để CỘNG TIỀN THẺ CÀO ---
 @app.route('/callback_card', methods=['POST', 'GET'])
@@ -1224,13 +1230,20 @@ def callback_card():
     status = request.args.get('status') or request.form.get('status')
     request_id = request.args.get('request_id') or request.form.get('request_id')
     declared_value = request.args.get('declared_value') or request.form.get('declared_value')
+    # Lấy thông tin nhà mạng (telco) do web TSR trả về để tính chiết khấu
+    telco = request.args.get('telco') or request.form.get('telco') or ""
     
     # Status = 1 nghĩa là thẻ ĐÚNG, nạp thành công
     if str(status) == '1':
         card_info = db.reference(f'cards/{request_id}').get()
         if card_info and card_info.get('status') == 'pending':
             username = card_info.get('username')
-            add_amount = int(declared_value)
+            
+            # --- ĐÁNH THUẾ / TRỪ PHÍ TẠI ĐÂY ---
+            # Tìm trong CARD_RATES, nếu không có mạng này thì mặc định trừ 20% (nhân 0.80)
+            rate = CARD_RATES.get(telco.upper(), 0.80)
+            add_amount = int(int(declared_value) * rate)
+            # -----------------------------------
             
             # 1. Cập nhật trạng thái thẻ trên db
             db.reference(f'cards/{request_id}').update({'status': 'success'})
